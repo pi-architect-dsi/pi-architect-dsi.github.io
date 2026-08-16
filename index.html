@@ -82,15 +82,12 @@
         /* =======================================================
            CHOREOGRAPHY TIMELINE (THE ANIMATIONS)
            ======================================================= */
-        
-        /* FIRST CLICK STAGE A: Wipeout */
         body.stage-wipeout .title-container,
         body.stage-wipeout .info-loop {
             opacity: 0 !important;
             transition: none !important;
         }
 
-        /* FIRST CLICK STAGE B & C: Rebuild at Top */
         body.stage-reveal-all .title-container {
             top: 26%; 
             opacity: 0;
@@ -108,14 +105,12 @@
             }
         }
 
-        /* SECOND CLICK RESET: Wipeout */
         body.stage-reset-wipeout .title-container,
         body.stage-reset-wipeout .info-loop {
             opacity: 0 !important;
             transition: none !important;
         }
 
-        /* THE INTERACTION SHIELD */
         body.animating {
             pointer-events: none !important;
             cursor: default !important;
@@ -141,54 +136,61 @@
     <script>
         const body = document.body;
         let audioCtx = null;
-        let oscillators = [];
+        let osc = null;
         let gainNode = null;
+        let sequenceInterval = null;
 
-        // THE DUCHAMP CHANCE AUDIO SYNTHESIZER
-        function playScribalTexture() {
-            // Initialize audio engine on user interaction
+        // THE DUCHAMP NOTE POOL (Frequencies corresponding to specific classical pitches)
+        const duchampNotes = [220.00, 246.94, 277.18, 293.66, 329.63, 349.23, 392.00, 440.00];
+
+        function playScribalSequence() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
             
-            // Create a global volume node to keep it gentle and atmospheric
+            // Create a main master volume controller set to a soft 5% background drone
             gainNode = audioCtx.createGain();
-            gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime); // Very soft background volume (4%)
+            gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
             gainNode.connect(audioCtx.destination);
 
-            // Marcel Duchamp's Note Pool: 4 specific, slightly dissonant archival frequencies
-            const baselineNotes = [220.00, 285.30, 330.00, 415.30]; 
+            // Create a singular, smooth oscillator voice
+            osc = audioCtx.createOscillator();
+            osc.type = 'sine';
             
-            // Randomly pick 3 notes from the pool (Scribal Chance)
-            const activeNotes = baselineNotes.sort(() => 0.5 - Math.random()).slice(0, 3);
+            // Pick the very first note randomly to start the track
+            const initialFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
+            osc.frequency.setValueAtTime(initialFreq, audioCtx.currentTime);
+            
+            osc.connect(gainNode);
+            osc.start();
 
-            activeNotes.forEach((freq, index) => {
-                const osc = audioCtx.createOscillator();
-                osc.type = 'sine'; // Smooth, pure electronic wave
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            // THE AUTOMATED SEQUENCER: Steps to a brand-new random note every 1.5 seconds
+            sequenceInterval = setInterval(() => {
+                const randomFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
                 
-                // Slightly desynchronize the internal volume of each note to create a breathing texture
-                const oscGain = audioCtx.createGain();
-                oscGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                
-                osc.connect(oscGain);
-                oscGain.connect(gainNode);
-                
-                // Start playing immediately
-                osc.start();
-                oscillators.push(osc);
-            });
+                // ExponentialRamp allows the sound to glide smoothly to the new frequency over 0.4 seconds, 
+                // avoiding any harsh or mechanical digital clicks.
+                osc.frequency.exponentialRampToValueAtTime(randomFreq, audioCtx.currentTime + 0.4);
+            }, 1500); // 1500ms = 1.5 seconds per note change
         }
 
-        function stopScribalTexture() {
+        function stopScribalSequence() {
+            // Instantly stop the clock from switching to new notes
+            if (sequenceInterval) {
+                clearInterval(sequenceInterval);
+                sequenceInterval = null;
+            }
+
+            // Smoothly fade the current note into complete silence over 0.6 seconds
             if (gainNode && audioCtx) {
-                // Smoothly fade out the sound over 0.6 seconds so it doesn't pop or click when closing
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
                 setTimeout(() => {
-                    oscillators.forEach(osc => {
-                        try { osc.stop(); } catch(e) {}
-                    });
-                    oscillators = [];
+                    try {
+                        if (osc) { osc.stop(); osc.disconnect(); }
+                        if (gainNode) { gainNode.disconnect(); }
+                    } catch(e) {}
+                    osc = null;
+                    gainNode = null;
                 }, 600);
             }
         }
@@ -196,17 +198,17 @@
         body.addEventListener('click', function(e) {
             if (e.target.tagName === 'A') return;
             
-            // LOOP CLICK 1: Transition into full archive layout
             if (body.classList.contains('state-1')) {
                 body.classList.remove('state-1');
                 body.classList.add('stage-wipeout', 'animating');
                 
                 setTimeout(() => {
                     body.classList.remove('stage-wipeout');
+                    body.githubPagesCustomDomainActive = true; 
                     body.classList.add('stage-reveal-all'); 
                     
-                    // START THE TEXTURE: Sound begins playing exactly as the title starts fading in at the top
-                    playScribalTexture();
+                    // Activate the moving melody sequence as the text surfaces
+                    playScribalSequence();
                     
                     setTimeout(() => {
                         body.classList.remove('animating');
@@ -214,14 +216,12 @@
                     
                 }, 1000); 
             } 
-            
-            // LOOP CLICK 2: Return back into the silent center void
             else if (body.classList.contains('stage-reveal-all')) {
                 body.classList.remove('stage-reveal-all');
                 body.classList.add('stage-reset-wipeout', 'animating');
                 
-                // STOP THE TEXTURE: Smoothly fade the sound away as the screen plunges to white
-                stopScribalTexture();
+                // Shut down the moving track and fade out nicely
+                stopScribalSequence();
                 
                 setTimeout(() => {
                     body.classList.remove('stage-reset-wipeout');
@@ -247,5 +247,3 @@
     </script>
 </body>
 </html>
-
-
