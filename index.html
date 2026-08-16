@@ -6,19 +6,33 @@
     <style>
         body {
             background-color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
             font-family: "Georgia", "Times New Roman", serif;
+            cursor: pointer;
+            overflow-x: hidden;
         }
+        
+        /* The main interface container */
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px;
+            box-sizing: border-box;
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
         .title-container {
             font-size: 3rem;
             font-weight: normal;
             color: #000000;
             letter-spacing: 1px;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            text-align: center;
         }
+
         .cursor {
             display: inline-block;
             width: 3px;
@@ -28,15 +42,70 @@
             animation: blink 1s step-end infinite;
             vertical-align: middle;
         }
+
         @keyframes blink {
             from, to { background-color: transparent }
             50% { background-color: #000000; }
         }
+
+        /* The hidden narrative information loop */
+        .info-loop {
+            max-width: 600px;
+            margin-top: 40px;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #222222;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none; /* Prevents text selection from accidentally triggering the click */
+        }
+
+        .info-loop p {
+            margin-bottom: 24px;
+        }
+
+        .info-loop strong {
+            color: #000000;
+        }
+
+        /* Active state classes applied when user clicks the screen */
+        body.active .title-container {
+            transform: translateY(-20px);
+        }
+
+        body.active .info-loop {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
-    <div class="title-container">
-        Errata incorrecta<span class="cursor"></span>
+
+    <div class="wrapper" id="portal-wrapper">
+        <div class="title-container">
+            Errata incorrecta<span class="cursor"></span>
+        </div>
+        
+        <div class="info-loop">
+            <p><strong>CONDITIONS OF RECOVERY: ITEM NO. 1–100</strong></p>
+            <p>You are in physical possession of an un-amended, unpublished literary asset. Because each manuscript contains a unique, intentional transcription error, no second copy exists in the world.</p>
+            <p>The financial reward for surrendering this page is fixed at a dynamic percentage of the verified market valuation of the total archive, calculated at the exact timestamp of physical presentation.</p>
+            <p>To initiate secure, offline return protocols and finalize your claim, forward the physical artifact directly to the exhibition repository: <strong>[Gallery Name, Address, London]</strong>.</p>
+            <p>Contact: <strong>[Your Proton Email]</strong></p>
+        </div>
     </div>
+
+    <script>
+        // Toggles the hidden state whenever the user clicks anywhere on the screen
+        document.body.addEventListener('click', function(e) {
+            // Stops clicking on actual links inside the info text from closing the screen
+            if (e.target.tagName === 'A') return;
+            
+            document.body.classList.toggle('active');
+        });
+    </script>
 </body>
 </html>
+
