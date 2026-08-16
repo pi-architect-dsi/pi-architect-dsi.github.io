@@ -23,7 +23,7 @@
             box-sizing: border-box;
         }
 
-        /* Title Default State: Centered vertically and horizontally */
+        /* 1. TITLE INITIAL STATE (Centered) */
         .title-container {
             font-size: 3rem;
             font-weight: normal;
@@ -31,12 +31,10 @@
             letter-spacing: 1px;
             text-align: center;
             position: absolute;
-            top: 50%;
             left: 50%;
+            top: 50%;
             transform: translate(-50%, -50%);
             opacity: 1;
-            /* Smooth glide up when active, instant disappear when resetting */
-            transition: top 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease;
         }
 
         .cursor {
@@ -54,7 +52,7 @@
             50% { background-color: #000000; }
         }
 
-        /* Manifesto Hidden State: Positioned relative to the wrapper */
+        /* 2. MANIFESTO INITIAL STATE (Hidden) */
         .info-loop {
             max-width: 600px;
             font-size: 1.1rem;
@@ -63,11 +61,10 @@
             opacity: 0;
             text-align: left;
             position: absolute;
-            top: 36%; /* Pushed upward to compress space below the active title */
+            top: 36%; /* Tight layout right below the title's new top position */
             left: 50%;
             transform: translate(-50%, 0);
             pointer-events: none;
-            transition: opacity 0.4s ease-out;
         }
 
         .info-loop p {
@@ -79,17 +76,26 @@
         }
 
         /* =======================================================
-           REVEAL STATE (CLICK 1)
+           THE CHOREOGRAPHY MECHANICS (AUTOMATED THROUGH CLASSES)
            ======================================================= */
-
-        /* Title glides closer to the block (top: 26%) rather than far away */
-        body.active .title-container {
-            top: 26%;
+        
+        /* STAGE A: Instant Wipeout into White Void */
+        body.stage-wipeout .title-container {
+            opacity: 0;
+            transition: none;
         }
 
-        /* Manifesto fades in with a 0.4 second asynchronous delay */
-        body.active .info-loop {
-            animation: textFadeIn 0.6s ease-out 0.4s forwards;
+        /* STAGE B: Title Fades In Softly At The Top */
+        body.stage-reveal-title .title-container {
+            top: 26%; /* Perfectly positioned right above the text block */
+            opacity: 0;
+            transition: none;
+            animation: textFadeIn 1.2s ease-in forwards; /* Slow, ghostly entrance */
+        }
+
+        /* STAGE C: Text Fades In Tightly Underneath with Asynchronous Lag */
+        body.stage-reveal-title .info-loop {
+            animation: textFadeIn 0.8s ease-out 1.4s forwards; /* Starts right as title finishes */
         }
 
         @keyframes textFadeIn {
@@ -98,24 +104,9 @@
                 pointer-events: auto;
             }
         }
-
-        /* =======================================================
-           RESET STATE (CLICK 2)
-           ======================================================= */
-
-        /* Instant total wipeout. Everything disappears instantly without sliding */
-        body.resetting .title-container {
-            opacity: 0;
-            transition: none; 
-        }
-
-        body.resetting .info-loop {
-            opacity: 0;
-            transition: none;
-        }
     </style>
 </head>
-<body>
+<body class="initial">
 
     <div class="wrapper" id="portal-wrapper">
         <div class="title-container">
@@ -137,27 +128,18 @@
         body.addEventListener('click', function(e) {
             if (e.target.tagName === 'A') return;
             
-            if (!body.classList.contains('active') && !body.classList.contains('resetting')) {
-                // FIRST CLICK: Glide title up, then show text
-                body.classList.add('active');
-            } else if (body.classList.contains('active')) {
-                // SECOND CLICK: Instantly clear screen to absolute white void
-                body.classList.remove('active');
-                body.classList.add('resetting');
+            // Only trigger if the page is in its default, untouched state
+            if (body.classList.contains('initial')) {
+                body.classList.remove('initial');
                 
-                // STAGE 2 (2.5 Seconds Later): Re-appear the title in the center out of nowhere
+                // 1. STAGE A: Instant wipeout to pure white silence
+                body.classList.add('stage-wipeout');
+                
+                // 2. STAGE B: After 1 second of void, fade the title in slowly on top
                 setTimeout(() => {
-                    // Temporarily hide transition to prevent moving animation on return
-                    const title = document.querySelector('.title-container');
-                    title.style.transition = 'none';
-                    
-                    body.classList.remove('resetting');
-                    
-                    // Re-enable smooth transition for the next click sequence
-                    setTimeout(() => {
-                        title.style.transition = 'top 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease';
-                    }, 50);
-                }, 2500); // 2500ms = 2.5 seconds of beautiful, blank white silence
+                    body.classList.remove('stage-wipeout');
+                    body.classList.add('stage-reveal-title');
+                }, 1000); // 1000ms of pure empty white space
             }
         });
     </script>
