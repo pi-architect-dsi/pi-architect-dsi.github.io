@@ -19,7 +19,7 @@
             box-sizing: border-box;
         }
 
-        /* 1. TITLE CONTAINER: Locked permanently to the horizontal center (left: 50%) */
+        /* 1. TITLE CONTAINER: Locked permanently to the horizontal center */
         .title-container {
             font-size: 3rem;
             font-weight: normal;
@@ -31,14 +31,13 @@
             transform: translate(-50%, -50%);
             width: 100%;
             max-width: 600px;
-            /* Guarantees that ALL vertical and opacity movements are completely smooth */
-            transition: top 1.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 1s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        /* STATE 1: Default home position (Absolute vertical and horizontal center) */
+        /* STATE 1: Default home position (Absolute vertical center) */
         body.state-1 .title-container {
             top: 50%;
             opacity: 1;
+            transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .cursor {
@@ -70,8 +69,6 @@
             left: 50%;
             transform: translate(-50%, 0);
             pointer-events: none;
-            /* Handles the smooth slow fade-out when resetting */
-            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .info-loop p {
@@ -86,14 +83,14 @@
            CHOREOGRAPHY TIMELINE (THE ANIMATIONS)
            ======================================================= */
         
-        /* STAGE A: Instant Wipeout into White Void */
+        /* FIRST CLICK STAGE A: Instant Wipeout into White Void */
         body.stage-wipeout .title-container,
         body.stage-wipeout .info-loop {
             opacity: 0 !important;
             transition: none !important;
         }
 
-        /* STAGE B & C: The Asynchronous Rebuild */
+        /* FIRST CLICK STAGE B & C: The Asynchronous Rebuild at Top */
         body.stage-reveal-all .title-container {
             top: 26%; 
             opacity: 0;
@@ -109,6 +106,13 @@
                 opacity: 1;
                 pointer-events: auto;
             }
+        }
+
+        /* SECOND CLICK RESET: Complete, instant screen blackout */
+        body.stage-reset-wipeout .title-container,
+        body.stage-reset-wipeout .info-loop {
+            opacity: 0 !important;
+            transition: none !important;
         }
     </style>
 </head>
@@ -134,34 +138,42 @@
         body.addEventListener('click', function(e) {
             if (e.target.tagName === 'A') return;
             
-            // LOOP CLICK 1: From home center -> wipeout -> reveal loop
+            // LOOP CLICK 1: From home center -> instant wipeout -> reveal loop at top
             if (body.classList.contains('state-1')) {
                 body.classList.remove('state-1');
-                body.classList.add('stage-wipeout'); // 1. Plunge to absolute white silence
+                body.classList.add('stage-wipeout');
                 
                 setTimeout(() => {
                     body.classList.remove('stage-wipeout');
-                    body.classList.add('stage-reveal-all'); // 2. Build slowly and asynchronously
-                }, 1000); 
+                    body.classList.add('stage-reveal-all'); 
+                }, 1000); // 1 second of white void before layout loads
             } 
             
-            // LOOP CLICK 2: From full view -> Return smoothly to home center
+            // LOOP CLICK 2: From full view -> Wipe to white void -> Slow fade-in at center
             else if (body.classList.contains('stage-reveal-all')) {
                 body.classList.remove('stage-reveal-all');
+                body.classList.add('stage-reset-wipeout'); // Everything completely vanishes instantly
                 
-                // 1. Slow, elegant fade out of the body text
-                const info = document.querySelector('.info-loop');
-                info.style.opacity = '0';
-                
-                // 2. Smoothly slide the title back into absolute vertical center
-                body.classList.add('state-1');
-                
-                // 3. Clear transient inline styles after transition finishes to reset the loop state
+                // Wait exactly 0.8 seconds in a pure white void
                 setTimeout(() => {
-                    info.style.opacity = '';
-                }, 1200);
+                    body.classList.remove('stage-reset-wipeout');
+                    
+                    // Put the title back at the center, completely hidden (opacity 0)
+                    const title = document.querySelector('.title-container');
+                    title.style.transition = 'none';
+                    body.classList.add('state-1'); 
+                    title.style.opacity = '0';
+                    
+                    // Force a tiny millisecond pause so the browser realizes it's centered, then trigger the slow fade-in
+                    setTimeout(() => {
+                        title.style.transition = 'opacity 1.4s ease-in-out';
+                        title.style.opacity = '1';
+                    }, 50);
+                    
+                }, 800); // Duration of the closing white void
             }
         });
     </script>
 </body>
 </html>
+
