@@ -115,7 +115,7 @@
             transition: none !important;
         }
 
-        /* THE INTERACTION SHIELD: Disables clicking and changes cursor during transitions */
+        /* THE INTERACTION SHIELD */
         body.animating {
             pointer-events: none !important;
             cursor: default !important;
@@ -140,31 +140,88 @@
 
     <script>
         const body = document.body;
+        let audioCtx = null;
+        let oscillators = [];
+        let gainNode = null;
+
+        // THE DUCHAMP CHANCE AUDIO SYNTHESIZER
+        function playScribalTexture() {
+            // Initialize audio engine on user interaction
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // Create a global volume node to keep it gentle and atmospheric
+            gainNode = audioCtx.createGain();
+            gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime); // Very soft background volume (4%)
+            gainNode.connect(audioCtx.destination);
+
+            // Marcel Duchamp's Note Pool: 4 specific, slightly dissonant archival frequencies
+            const baselineNotes = [220.00, 285.30, 330.00, 415.30]; 
+            
+            // Randomly pick 3 notes from the pool (Scribal Chance)
+            const activeNotes = baselineNotes.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+            activeNotes.forEach((freq, index) => {
+                const osc = audioCtx.createOscillator();
+                osc.type = 'sine'; // Smooth, pure electronic wave
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                // Slightly desynchronize the internal volume of each note to create a breathing texture
+                const oscGain = audioCtx.createGain();
+                oscGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                
+                osc.connect(oscGain);
+                oscGain.connect(gainNode);
+                
+                // Start playing immediately
+                osc.start();
+                oscillators.push(osc);
+            });
+        }
+
+        function stopScribalTexture() {
+            if (gainNode && audioCtx) {
+                // Smoothly fade out the sound over 0.6 seconds so it doesn't pop or click when closing
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+                setTimeout(() => {
+                    oscillators.forEach(osc => {
+                        try { osc.stop(); } catch(e) {}
+                    });
+                    oscillators = [];
+                }, 600);
+            }
+        }
 
         body.addEventListener('click', function(e) {
             if (e.target.tagName === 'A') return;
             
-            // LOOP CLICK 1: From center -> reveal loop at top
+            // LOOP CLICK 1: Transition into full archive layout
             if (body.classList.contains('state-1')) {
                 body.classList.remove('state-1');
-                body.classList.add('stage-wipeout', 'animating'); // Lock the screen instantly
+                body.classList.add('stage-wipeout', 'animating');
                 
                 setTimeout(() => {
                     body.classList.remove('stage-wipeout');
                     body.classList.add('stage-reveal-all'); 
                     
-                    // Unlock the screen only after the title (1.4s) + text delay (1.2s) + text fade (1.4s) finish
+                    // START THE TEXTURE: Sound begins playing exactly as the title starts fading in at the top
+                    playScribalTexture();
+                    
                     setTimeout(() => {
                         body.classList.remove('animating');
-                    }, 2600); // 2600ms total sequence length
+                    }, 2600); 
                     
-                }, 1000); // 1 second of initial white void
+                }, 1000); 
             } 
             
-            // LOOP CLICK 2: From full view -> Rebirth at center
+            // LOOP CLICK 2: Return back into the silent center void
             else if (body.classList.contains('stage-reveal-all')) {
                 body.classList.remove('stage-reveal-all');
-                body.classList.add('stage-reset-wipeout', 'animating'); // Lock the screen instantly
+                body.classList.add('stage-reset-wipeout', 'animating');
+                
+                // STOP THE TEXTURE: Smoothly fade the sound away as the screen plunges to white
+                stopScribalTexture();
                 
                 setTimeout(() => {
                     body.classList.remove('stage-reset-wipeout');
@@ -178,14 +235,13 @@
                         title.style.transition = 'opacity 1.4s ease-in-out';
                         title.style.opacity = '1';
                         
-                        // Unlock the screen once the rebirth fade-in is completely done
                         setTimeout(() => {
                             body.classList.remove('animating');
-                        }, 1400); // 1.4 seconds for the fade-in
+                        }, 1400); 
                         
                     }, 50);
                     
-                }, 800); // 0.8 seconds of closing white void
+                }, 800); 
             }
         });
     </script>
