@@ -19,6 +19,7 @@
             box-sizing: border-box;
         }
 
+        /* 1. TITLE CONTAINER */
         .title-container {
             font-size: 3rem;
             font-weight: normal;
@@ -32,6 +33,7 @@
             max-width: 600px;
         }
 
+        /* STATE 1: Default home position */
         body.state-1 .title-container {
             top: 50%;
             opacity: 1;
@@ -53,6 +55,7 @@
             50% { background-color: #000000; }
         }
 
+        /* 2. MANIFESTO CONTAINER */
         .info-loop {
             max-width: 600px;
             width: 90%;
@@ -132,18 +135,17 @@
         const body = document.body;
         let audioCtx = null;
         let masterGain = null;
-        let activeVoices = []; // Holds the 3 running voices
-        let sequenceIntervals = []; // Holds the 3 independent clocks
+        let activeVoices = []; 
+        let sequenceIntervals = []; 
 
         const duchampNotes = [220.00, 246.94, 277.18, 293.66, 329.63, 349.23, 392.00, 440.00];
 
-        // Creates a single moving voice line running on its own speed
         function createVoiceLine(speedMs) {
             const osc = audioCtx.createOscillator();
             osc.type = 'sine';
             
             const voiceGain = audioCtx.createGain();
-            voiceGain.gain.setValueAtTime(0.015, audioCtx.currentTime); // Whisper quiet per voice (1.5%)
+            voiceGain.gain.setValueAtTime(0.06, audioCtx.currentTime); // Whisper volume per voice
             
             const initialFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
             osc.frequency.setValueAtTime(initialFreq, audioCtx.currentTime);
@@ -153,7 +155,6 @@
             osc.start();
             activeVoices.push(osc);
 
-            // This specific clock updates this voice completely independent of the others
             const interval = setInterval(() => {
                 const randomFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
                 osc.frequency.exponentialRampToValueAtTime(randomFreq, audioCtx.currentTime + 0.5);
@@ -168,13 +169,12 @@
             }
             
             masterGain = audioCtx.createGain();
-            masterGain.gain.setValueAtTime(0.06, audioCtx.currentTime); // Total master limit (6%)
+            masterGain.gain.setValueAtTime(0.22, audioCtx.currentTime); // CALIBRATED AMPLITUDE: Set to 22%
             masterGain.connect(audioCtx.destination);
 
-            // Spawn Duchamp's 3 distinct vocal lines running at slightly different, asynchronous speeds
-            createVoiceLine(1600); // Voice 1 (Yvonne) updates every 1.6s
-            createVoiceLine(2200); // Voice 2 (Magdeleine) updates every 2.2s
-            createVoiceLine(2800); // Voice 3 (Marcel) updates every 2.8s
+            createVoiceLine(1600); // Voice 1 (Yvonne)
+            createVoiceLine(2200); // Voice 2 (Magdeleine)
+            createVoiceLine(2800); // Voice 3 (Marcel)
         }
 
         function stopDuchampChoir() {
@@ -203,7 +203,7 @@
                     body.classList.remove('stage-wipeout');
                     body.classList.add('stage-reveal-all'); 
                     
-                    startDuchampChoir(); // Fire the 3-voice moving choir
+                    startDuchampChoir(); 
                     
                     setTimeout(() => { body.classList.remove('animating'); }, 2600); 
                 }, 1000); 
@@ -212,7 +212,7 @@
                 body.classList.remove('stage-reveal-all');
                 body.classList.add('stage-reset-wipeout', 'animating');
                 
-                stopDuchampChoir(); // Fade out the choir smoothly
+                stopDuchampChoir(); 
                 
                 setTimeout(() => {
                     body.classList.remove('stage-reset-wipeout');
@@ -232,3 +232,4 @@
     </script>
 </body>
 </html>
+
