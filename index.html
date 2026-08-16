@@ -16,14 +16,10 @@
             position: relative;
             width: 100vw;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             box-sizing: border-box;
         }
 
-        /* 1. TITLE BASE STYLE */
+        /* 1. TITLE CONTAINER: Locked permanently to the horizontal center (left: 50%) */
         .title-container {
             font-size: 3rem;
             font-weight: normal;
@@ -32,14 +28,16 @@
             text-align: center;
             position: absolute;
             left: 50%;
-            transition: top 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s ease;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            max-width: 600px;
+            /* Guarantees that ALL vertical and opacity movements are completely smooth */
+            transition: top 1.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 1s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        /* STATE 1: Default Absolute Center */
+        /* STATE 1: Default home position (Absolute vertical and horizontal center) */
         body.state-1 .title-container {
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             opacity: 1;
         }
 
@@ -58,9 +56,10 @@
             50% { background-color: #000000; }
         }
 
-        /* 2. MANIFESTO BASE STYLE */
+        /* 2. MANIFESTO CONTAINER: Locked permanently to the horizontal center */
         .info-loop {
             max-width: 600px;
+            width: 90%;
             font-size: 1.1rem;
             line-height: 1.8;
             color: #222222;
@@ -71,6 +70,8 @@
             left: 50%;
             transform: translate(-50%, 0);
             pointer-events: none;
+            /* Handles the smooth slow fade-out when resetting */
+            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .info-loop p {
@@ -88,21 +89,19 @@
         /* STAGE A: Instant Wipeout into White Void */
         body.stage-wipeout .title-container,
         body.stage-wipeout .info-loop {
-            opacity: 0;
-            transition: none;
+            opacity: 0 !important;
+            transition: none !important;
         }
 
         /* STAGE B & C: The Asynchronous Rebuild */
         body.stage-reveal-all .title-container {
             top: 26%; 
             opacity: 0;
-            transition: none;
-            animation: slowFadeIn 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards; /* Slow ghostly title */
+            animation: slowFadeIn 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
-        /* FIX 2: Calibrated to match the slow, elegant crawl of the title */
         body.stage-reveal-all .info-loop {
-            animation: slowFadeIn 1.4s cubic-bezier(0.25, 1, 0.5, 1) 1.2s forwards; /* Match pacing + 1.2s delay */
+            animation: slowFadeIn 1.4s cubic-bezier(0.25, 1, 0.5, 1) 1.2s forwards;
         }
 
         @keyframes slowFadeIn {
@@ -113,7 +112,7 @@
         }
     </style>
 </head>
-<body class="state-1"> <!-- Starts natively on State 1 (Centered) -->
+<body class="state-1"> <!-- Starts natively on Step 1: Perfectly Centered -->
 
     <div class="wrapper" id="portal-wrapper">
         <div class="title-container">
@@ -135,32 +134,32 @@
         body.addEventListener('click', function(e) {
             if (e.target.tagName === 'A') return;
             
-            // LOOP STEP 1: Clicked from home center -> wipeout -> reveal loop
+            // LOOP CLICK 1: From home center -> wipeout -> reveal loop
             if (body.classList.contains('state-1')) {
                 body.classList.remove('state-1');
-                body.classList.add('stage-wipeout'); // 1. Plunge into white void
+                body.classList.add('stage-wipeout'); // 1. Plunge to absolute white silence
                 
                 setTimeout(() => {
                     body.classList.remove('stage-wipeout');
-                    body.classList.add('stage-reveal-all'); // 2. Run staggered slow fades
-                }, 1000); // 1 second of total empty silence
+                    body.classList.add('stage-reveal-all'); // 2. Build slowly and asynchronously
+                }, 1000); 
             } 
             
-            // FIX 1: Clicked again after everything is revealed -> reset back to home center smoothly
+            // LOOP CLICK 2: From full view -> Return smoothly to home center
             else if (body.classList.contains('stage-reveal-all')) {
                 body.classList.remove('stage-reveal-all');
                 
-                // Instantly hide the body text so it doesn't float down awkwardly
+                // 1. Slow, elegant fade out of the body text
                 const info = document.querySelector('.info-loop');
                 info.style.opacity = '0';
                 
-                // Smoothly slide the title back into absolute center position
+                // 2. Smoothly slide the title back into absolute vertical center
                 body.classList.add('state-1');
                 
-                // Small reset timer to clean inline styles for the next interaction
+                // 3. Clear transient inline styles after transition finishes to reset the loop state
                 setTimeout(() => {
                     info.style.opacity = '';
-                }, 800);
+                }, 1200);
             }
         });
     </script>
