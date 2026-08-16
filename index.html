@@ -17,12 +17,13 @@
             width: 100vw;
             height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             box-sizing: border-box;
         }
 
-        /* 1. Title Default State: Absolute Center */
+        /* Title Default State: Centered vertically and horizontally */
         .title-container {
             font-size: 3rem;
             font-weight: normal;
@@ -33,7 +34,9 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            opacity: 1;
+            /* Smooth glide up when active, instant disappear when resetting */
+            transition: top 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease;
         }
 
         .cursor {
@@ -51,7 +54,7 @@
             50% { background-color: #000000; }
         }
 
-        /* 2. Manifesto Hidden State: Shifted and Completely Invisible */
+        /* Manifesto Hidden State: Positioned relative to the wrapper */
         .info-loop {
             max-width: 600px;
             font-size: 1.1rem;
@@ -60,11 +63,11 @@
             opacity: 0;
             text-align: left;
             position: absolute;
-            top: 40%; /* Pushed up higher to make room for full text visibility */
+            top: 36%; /* Pushed upward to compress space below the active title */
             left: 50%;
             transform: translate(-50%, 0);
             pointer-events: none;
-            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            transition: opacity 0.4s ease-out;
         }
 
         .info-loop p {
@@ -76,43 +79,39 @@
         }
 
         /* =======================================================
-           3. THE REVEAL PHASE: ASYNCHRONOUS KINETIC STEPPING
+           REVEAL STATE (CLICK 1)
            ======================================================= */
 
-        /* Step A: Click 1 - The Title glides much further up to the top 15% */
+        /* Title glides closer to the block (top: 26%) rather than far away */
         body.active .title-container {
-            top: 15%;
-            animation: textFadeIn 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            top: 26%;
         }
 
-        /* Step B: Click 1 - The Manifesto fades in with a 0.4 second deliberate lag */
+        /* Manifesto fades in with a 0.4 second asynchronous delay */
         body.active .info-loop {
-            animation: textFadeIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) 0.4s forwards;
+            animation: textFadeIn 0.6s ease-out 0.4s forwards;
         }
 
-        /* =======================================================
-           4. THE RESET PHASE: REVERSING INTO COLD ASYNCHRONITY 
-           ======================================================= */
-
-        /* Step C: Click 2 - Immediate total wipeout of the manifesto */
-        body.resetting .info-loop {
-            opacity: 0;
-            transform: translate(-50%, 20px);
-            transition: opacity 0.1s ease-out;
-        }
-
-        /* Step D: Click 2 - Title vanishes completely to clear the screen into white */
-        body.resetting .title-container {
-            opacity: 0;
-            transition: opacity 0.1s ease-out;
-        }
-
-        /* Step E: The Keyframe Animation used for the staggered loading */
         @keyframes textFadeIn {
             to {
                 opacity: 1;
                 pointer-events: auto;
             }
+        }
+
+        /* =======================================================
+           RESET STATE (CLICK 2)
+           ======================================================= */
+
+        /* Instant total wipeout. Everything disappears instantly without sliding */
+        body.resetting .title-container {
+            opacity: 0;
+            transition: none; 
+        }
+
+        body.resetting .info-loop {
+            opacity: 0;
+            transition: none;
         }
     </style>
 </head>
@@ -138,21 +137,30 @@
         body.addEventListener('click', function(e) {
             if (e.target.tagName === 'A') return;
             
-            // Loop Mechanism Logic
             if (!body.classList.contains('active') && !body.classList.contains('resetting')) {
-                // FIRST CLICK: Trigger the Asynchronous Fade In
+                // FIRST CLICK: Glide title up, then show text
                 body.classList.add('active');
             } else if (body.classList.contains('active')) {
-                // SECOND CLICK: Trigger the multi-stage reset loop
+                // SECOND CLICK: Instantly clear screen to absolute white void
                 body.classList.remove('active');
                 body.classList.add('resetting');
                 
-                // STAGE 1 (A Second Later): Re-introduce the title at the center
+                // STAGE 2 (2.5 Seconds Later): Re-appear the title in the center out of nowhere
                 setTimeout(() => {
+                    // Temporarily hide transition to prevent moving animation on return
+                    const title = document.querySelector('.title-container');
+                    title.style.transition = 'none';
+                    
                     body.classList.remove('resetting');
-                }, 1000); // 1000ms = exactly 1 second of pure white void
+                    
+                    // Re-enable smooth transition for the next click sequence
+                    setTimeout(() => {
+                        title.style.transition = 'top 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s ease';
+                    }, 50);
+                }, 2500); // 2500ms = 2.5 seconds of beautiful, blank white silence
             }
         });
     </script>
 </body>
 </html>
+
