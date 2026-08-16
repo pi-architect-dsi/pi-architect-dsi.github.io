@@ -138,26 +138,55 @@
         let activeVoices = []; 
         let sequenceIntervals = []; 
 
-        const duchampNotes = [220.00, 246.94, 277.18, 293.66, 329.63, 349.23, 392.00, 440.00];
+        // DUCHAMP'S DIATONIC BASE SCALE MAPPED TO PHYSICAL FREQUENCIES
+        const baseScale = [174.61, 196.00, 220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46];
+
+        // Function to create a 25-card shuffled deck from the note pool
+        function generateDuchampHat() {
+            let hat = [];
+            // Fill the hat with 25 notes by sampling from our scale pool
+            for (let i = 0; i < 25; i++) {
+                hat.push(baseScale[i % baseScale.length]);
+            }
+            // Shuffle the 25 cards completely (Fisher-Yates Shuffle Algorithm)
+            for (let i = hat.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [hat[i], hat[j]] = [hat[j], hat[i]];
+            }
+            return hat;
+        }
 
         function createVoiceLine(speedMs) {
             const osc = audioCtx.createOscillator();
             osc.type = 'sine';
             
             const voiceGain = audioCtx.createGain();
-            voiceGain.gain.setValueAtTime(0.06, audioCtx.currentTime); // Whisper volume per voice
+            voiceGain.gain.setValueAtTime(0.04, audioCtx.currentTime); // Soft volume balance per individual voice
             
-            const initialFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
-            osc.frequency.setValueAtTime(initialFreq, audioCtx.currentTime);
+            // Draw the first card from a freshly shuffled 25-card hat
+            let currentHat = generateDuchampHat();
+            let cardIndex = 0;
+            
+            osc.frequency.setValueAtTime(currentHat[cardIndex], audioCtx.currentTime);
             
             osc.connect(voiceGain);
             voiceGain.connect(masterGain);
             osc.start();
             activeVoices.push(osc);
 
+            // THE MECHANICAL SEQUENCER: Steps through the 25 cards step-by-step without repetition
             const interval = setInterval(() => {
-                const randomFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
-                osc.frequency.exponentialRampToValueAtTime(randomFreq, audioCtx.currentTime + 0.5);
+                cardIndex++;
+                
+                // If the 25-card hat is completely empty, put them all back and reshuffle (Reset loop)
+                if (cardIndex >= 25) {
+                    currentHat = generateDuchampHat();
+                    cardIndex = 0;
+                }
+                
+                const nextFreq = currentHat[cardIndex];
+                // Smooth glide to the next unique note card over 0.6 seconds
+                osc.frequency.exponentialRampToValueAtTime(nextFreq, audioCtx.currentTime + 0.6);
             }, speedMs);
             
             sequenceIntervals.push(interval);
@@ -169,12 +198,14 @@
             }
             
             masterGain = audioCtx.createGain();
-            masterGain.gain.setValueAtTime(0.22, audioCtx.currentTime); // CALIBRATED AMPLITUDE: Set to 22%
+            masterGain.gain.setValueAtTime(0.12, audioCtx.currentTime); // Balanced Cruise Volume at 12%
             masterGain.connect(audioCtx.destination);
 
-            createVoiceLine(1600); // Voice 1 (Yvonne)
-            createVoiceLine(2200); // Voice 2 (Magdeleine)
-            createVoiceLine(2800); // Voice 3 (Marcel)
+            // Initialize Duchamp's three vocal parts (Yvonne, Magdeleine, Marcel)
+            // Running on separate timing loops to create fluid, evolving non-repetitive harmonies
+            createVoiceLine(1800); // Yvonne steps every 1.8s
+            createVoiceLine(2400); // Magdeleine steps every 2.4s
+            createVoiceLine(3000); // Marcel steps every 3.0s
         }
 
         function stopDuchampChoir() {
@@ -209,7 +240,7 @@
                 }, 1000); 
             } 
             else if (body.classList.contains('stage-reveal-all')) {
-                body.classList.remove('stage-reveal-all');
+                body.classList.remove('state-reveal-all');
                 body.classList.add('stage-reset-wipeout', 'animating');
                 
                 stopDuchampChoir(); 
@@ -232,4 +263,5 @@
     </script>
 </body>
 </html>
+
 
