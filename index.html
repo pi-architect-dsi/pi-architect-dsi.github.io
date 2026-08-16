@@ -19,7 +19,6 @@
             box-sizing: border-box;
         }
 
-        /* 1. TITLE CONTAINER */
         .title-container {
             font-size: 3rem;
             font-weight: normal;
@@ -33,7 +32,6 @@
             max-width: 600px;
         }
 
-        /* STATE 1: Default home position */
         body.state-1 .title-container {
             top: 50%;
             opacity: 1;
@@ -55,7 +53,6 @@
             50% { background-color: #000000; }
         }
 
-        /* 2. MANIFESTO CONTAINER */
         .info-loop {
             max-width: 600px;
             width: 90%;
@@ -79,9 +76,7 @@
             color: #000000;
         }
 
-        /* =======================================================
-           CHOREOGRAPHY TIMELINE (THE ANIMATIONS)
-           ======================================================= */
+        /* TIMELINE ANIMATIONS */
         body.stage-wipeout .title-container,
         body.stage-wipeout .info-loop {
             opacity: 0 !important;
@@ -136,61 +131,63 @@
     <script>
         const body = document.body;
         let audioCtx = null;
-        let osc = null;
-        let gainNode = null;
-        let sequenceInterval = null;
+        let masterGain = null;
+        let activeVoices = []; // Holds the 3 running voices
+        let sequenceIntervals = []; // Holds the 3 independent clocks
 
-        // THE DUCHAMP NOTE POOL (Frequencies corresponding to specific classical pitches)
         const duchampNotes = [220.00, 246.94, 277.18, 293.66, 329.63, 349.23, 392.00, 440.00];
 
-        function playScribalSequence() {
+        // Creates a single moving voice line running on its own speed
+        function createVoiceLine(speedMs) {
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sine';
+            
+            const voiceGain = audioCtx.createGain();
+            voiceGain.gain.setValueAtTime(0.015, audioCtx.currentTime); // Whisper quiet per voice (1.5%)
+            
+            const initialFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
+            osc.frequency.setValueAtTime(initialFreq, audioCtx.currentTime);
+            
+            osc.connect(voiceGain);
+            voiceGain.connect(masterGain);
+            osc.start();
+            activeVoices.push(osc);
+
+            // This specific clock updates this voice completely independent of the others
+            const interval = setInterval(() => {
+                const randomFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
+                osc.frequency.exponentialRampToValueAtTime(randomFreq, audioCtx.currentTime + 0.5);
+            }, speedMs);
+            
+            sequenceIntervals.push(interval);
+        }
+
+        function startDuchampChoir() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
             
-            // Create a main master volume controller set to a soft 5% background drone
-            gainNode = audioCtx.createGain();
-            gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            gainNode.connect(audioCtx.destination);
+            masterGain = audioCtx.createGain();
+            masterGain.gain.setValueAtTime(0.06, audioCtx.currentTime); // Total master limit (6%)
+            masterGain.connect(audioCtx.destination);
 
-            // Create a singular, smooth oscillator voice
-            osc = audioCtx.createOscillator();
-            osc.type = 'sine';
-            
-            // Pick the very first note randomly to start the track
-            const initialFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
-            osc.frequency.setValueAtTime(initialFreq, audioCtx.currentTime);
-            
-            osc.connect(gainNode);
-            osc.start();
-
-            // THE AUTOMATED SEQUENCER: Steps to a brand-new random note every 1.5 seconds
-            sequenceInterval = setInterval(() => {
-                const randomFreq = duchampNotes[Math.floor(Math.random() * duchampNotes.length)];
-                
-                // ExponentialRamp allows the sound to glide smoothly to the new frequency over 0.4 seconds, 
-                // avoiding any harsh or mechanical digital clicks.
-                osc.frequency.exponentialRampToValueAtTime(randomFreq, audioCtx.currentTime + 0.4);
-            }, 1500); // 1500ms = 1.5 seconds per note change
+            // Spawn Duchamp's 3 distinct vocal lines running at slightly different, asynchronous speeds
+            createVoiceLine(1600); // Voice 1 (Yvonne) updates every 1.6s
+            createVoiceLine(2200); // Voice 2 (Magdeleine) updates every 2.2s
+            createVoiceLine(2800); // Voice 3 (Marcel) updates every 2.8s
         }
 
-        function stopScribalSequence() {
-            // Instantly stop the clock from switching to new notes
-            if (sequenceInterval) {
-                clearInterval(sequenceInterval);
-                sequenceInterval = null;
-            }
+        function stopDuchampChoir() {
+            sequenceIntervals.forEach(interval => clearInterval(interval));
+            sequenceIntervals = [];
 
-            // Smoothly fade the current note into complete silence over 0.6 seconds
-            if (gainNode && audioCtx) {
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+            if (masterGain && audioCtx) {
+                masterGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
                 setTimeout(() => {
-                    try {
-                        if (osc) { osc.stop(); osc.disconnect(); }
-                        if (gainNode) { gainNode.disconnect(); }
-                    } catch(e) {}
-                    osc = null;
-                    gainNode = null;
+                    activeVoices.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e) {} });
+                    if (masterGain) { masterGain.disconnect(); }
+                    activeVoices = [];
+                    masterGain = null;
                 }, 600);
             }
         }
@@ -204,28 +201,21 @@
                 
                 setTimeout(() => {
                     body.classList.remove('stage-wipeout');
-                    body.githubPagesCustomDomainActive = true; 
                     body.classList.add('stage-reveal-all'); 
                     
-                    // Activate the moving melody sequence as the text surfaces
-                    playScribalSequence();
+                    startDuchampChoir(); // Fire the 3-voice moving choir
                     
-                    setTimeout(() => {
-                        body.classList.remove('animating');
-                    }, 2600); 
-                    
+                    setTimeout(() => { body.classList.remove('animating'); }, 2600); 
                 }, 1000); 
             } 
             else if (body.classList.contains('stage-reveal-all')) {
                 body.classList.remove('stage-reveal-all');
                 body.classList.add('stage-reset-wipeout', 'animating');
                 
-                // Shut down the moving track and fade out nicely
-                stopScribalSequence();
+                stopDuchampChoir(); // Fade out the choir smoothly
                 
                 setTimeout(() => {
                     body.classList.remove('stage-reset-wipeout');
-                    
                     const title = document.querySelector('.title-container');
                     title.style.transition = 'none';
                     body.classList.add('state-1'); 
@@ -234,13 +224,8 @@
                     setTimeout(() => {
                         title.style.transition = 'opacity 1.4s ease-in-out';
                         title.style.opacity = '1';
-                        
-                        setTimeout(() => {
-                            body.classList.remove('animating');
-                        }, 1400); 
-                        
+                        setTimeout(() => { body.classList.remove('animating'); }, 1400); 
                     }, 50);
-                    
                 }, 800); 
             }
         });
