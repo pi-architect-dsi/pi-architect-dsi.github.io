@@ -19,7 +19,7 @@
             box-sizing: border-box;
         }
 
-        /* 1. TITLE CONTAINER: Locked permanently to the horizontal center */
+        /* 1. TITLE CONTAINER */
         .title-container {
             font-size: 3rem;
             font-weight: normal;
@@ -33,7 +33,7 @@
             max-width: 600px;
         }
 
-        /* STATE 1: Default home position (Absolute vertical center) */
+        /* STATE 1: Default home position */
         body.state-1 .title-container {
             top: 50%;
             opacity: 1;
@@ -55,7 +55,7 @@
             50% { background-color: #000000; }
         }
 
-        /* 2. MANIFESTO CONTAINER: Locked permanently to the horizontal center */
+        /* 2. MANIFESTO CONTAINER */
         .info-loop {
             max-width: 600px;
             width: 90%;
@@ -83,14 +83,14 @@
            CHOREOGRAPHY TIMELINE (THE ANIMATIONS)
            ======================================================= */
         
-        /* FIRST CLICK STAGE A: Instant Wipeout into White Void */
+        /* FIRST CLICK STAGE A: Wipeout */
         body.stage-wipeout .title-container,
         body.stage-wipeout .info-loop {
             opacity: 0 !important;
             transition: none !important;
         }
 
-        /* FIRST CLICK STAGE B & C: The Asynchronous Rebuild at Top */
+        /* FIRST CLICK STAGE B & C: Rebuild at Top */
         body.stage-reveal-all .title-container {
             top: 26%; 
             opacity: 0;
@@ -108,15 +108,21 @@
             }
         }
 
-        /* SECOND CLICK RESET: Complete, instant screen blackout */
+        /* SECOND CLICK RESET: Wipeout */
         body.stage-reset-wipeout .title-container,
         body.stage-reset-wipeout .info-loop {
             opacity: 0 !important;
             transition: none !important;
         }
+
+        /* THE INTERACTION SHIELD: Disables clicking and changes cursor during transitions */
+        body.animating {
+            pointer-events: none !important;
+            cursor: default !important;
+        }
     </style>
 </head>
-<body class="state-1"> <!-- Starts natively on Step 1: Perfectly Centered -->
+<body class="state-1">
 
     <div class="wrapper" id="portal-wrapper">
         <div class="title-container">
@@ -138,42 +144,52 @@
         body.addEventListener('click', function(e) {
             if (e.target.tagName === 'A') return;
             
-            // LOOP CLICK 1: From home center -> instant wipeout -> reveal loop at top
+            // LOOP CLICK 1: From center -> reveal loop at top
             if (body.classList.contains('state-1')) {
                 body.classList.remove('state-1');
-                body.classList.add('stage-wipeout');
+                body.classList.add('stage-wipeout', 'animating'); // Lock the screen instantly
                 
                 setTimeout(() => {
                     body.classList.remove('stage-wipeout');
                     body.classList.add('stage-reveal-all'); 
-                }, 1000); // 1 second of white void before layout loads
+                    
+                    // Unlock the screen only after the title (1.4s) + text delay (1.2s) + text fade (1.4s) finish
+                    setTimeout(() => {
+                        body.classList.remove('animating');
+                    }, 2600); // 2600ms total sequence length
+                    
+                }, 1000); // 1 second of initial white void
             } 
             
-            // LOOP CLICK 2: From full view -> Wipe to white void -> Slow fade-in at center
+            // LOOP CLICK 2: From full view -> Rebirth at center
             else if (body.classList.contains('stage-reveal-all')) {
                 body.classList.remove('stage-reveal-all');
-                body.classList.add('stage-reset-wipeout'); // Everything completely vanishes instantly
+                body.classList.add('stage-reset-wipeout', 'animating'); // Lock the screen instantly
                 
-                // Wait exactly 0.8 seconds in a pure white void
                 setTimeout(() => {
                     body.classList.remove('stage-reset-wipeout');
                     
-                    // Put the title back at the center, completely hidden (opacity 0)
                     const title = document.querySelector('.title-container');
                     title.style.transition = 'none';
                     body.classList.add('state-1'); 
                     title.style.opacity = '0';
                     
-                    // Force a tiny millisecond pause so the browser realizes it's centered, then trigger the slow fade-in
                     setTimeout(() => {
                         title.style.transition = 'opacity 1.4s ease-in-out';
                         title.style.opacity = '1';
+                        
+                        // Unlock the screen once the rebirth fade-in is completely done
+                        setTimeout(() => {
+                            body.classList.remove('animating');
+                        }, 1400); // 1.4 seconds for the fade-in
+                        
                     }, 50);
                     
-                }, 800); // Duration of the closing white void
+                }, 800); // 0.8 seconds of closing white void
             }
         });
     </script>
 </body>
 </html>
+
 
